@@ -11,6 +11,7 @@ export const LocalChatStoreProvider = (props) => {
 
   // Sync data to localStorage whenever it changes
   useEffect(() => {
+    console.log(data)
     store.setItem("wc-store", JSON.stringify(data));
   }, [data]);
 

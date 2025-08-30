@@ -1,42 +1,42 @@
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useParams } from "react-router";
 import ChatBubble from "./ChatBubble";
-
+import { LocalChatStore } from "../context/DataStoreContext";
 export default function ChatBox() {
+  const today = new Date();
+  const [input, setInput] = useState("");
+  const [url, setUrl] = useState("")
+  const { data, setData } = useContext(LocalChatStore);
+  const [currentChat, setCurrentChat] = useState([]);
   let id = useParams();
-  id = id.chatId;
-  function getChatData() {
-    alert(id);
+
+  function updateChatHistory() {
+    setData(...data, currentChat);
   }
-  async function handleApiCall() {
-    const url =
-      "https://millions-screeching-vultur.mastra.cloud/api/agents/weatherAgent/stream";
 
-    const headers = {
-      Accept: "*/*",
-      "Accept-Language": "en-GB,en-US;q=0.99,en;q=0.88,fr;q=0.77",
-      Connection: "keep-alive",
-      "Content-Type": "application/json",
-      "x-mastra-dev-playground": "true",
-    };
+  useEffect(() => {
+    alert(id);
+    getChatData();
+    // return console.log(currentChat + 'thiisssssss')
+  }, []);
 
-    const payload = {
-      messages: [
-        {
-          role: "user",
-          content: "What's the weather like today in Mumbai?",
-        },
-      ],
-      runId: "weatherAgent",
-      maxRetries: 2,
-      maxSteps: 5,
-      temperature: 0.5,
-      topP: 1,
-      runtimeContext: {},
-      threadId: "YOUR_COLLEGE_ROLL_NUMBER", // Replace with your actual roll number
-      resourceId: "weatherAgent",
-    };
+  function getChatData() {
+    let filterdData = data.find((c) => c.chatId === url);
 
+    setCurrentChat(filterdData);
+  }
+
+  function storeMessage(msg, isUser) {
+    console.log(currentChat.chats);
+    currentChat.chats.push({
+      isUser: isUser,
+      time: today.getTime(),
+      message: msg,
+    });
+  }
+
+  function handleClick() {
+    storeMessage(input, true);
     // let data = await fetch(url, {
     //   method: "POST",
     //   headers: headers,
@@ -45,7 +45,6 @@ export default function ChatBox() {
 
     // data = await data.json();
     alert();
-    getChatData();
   }
   return (
     <div className="flex justify-center h-screen lg:w-screen bg-yellow-500">
@@ -57,21 +56,26 @@ export default function ChatBox() {
             overflow: "auto",
           }}
         >
-          <ChatBubble message="Hello!" isUser={true} />
-
+          {currentChat.chats?.map((item, i) => {
+            return <ChatBubble message={item} isUser={true} />;
+          })}
         </div>
         <div className="h-[3rem] w-full bg-white flex items-center px-2">
           <input
             type="text"
             className="rounded w-full px-2 border"
             placeholder="Message"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+            }}
           />
           <button
             type="submit"
             style={{
               cursor: "pointer",
             }}
-            onClick={handleApiCall}
+            onClick={handleClick}
           >
             Send
           </button>
