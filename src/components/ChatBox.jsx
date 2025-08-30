@@ -2,45 +2,53 @@ import { useState, useContext, useEffect } from "react";
 import { useParams } from "react-router";
 import ChatBubble from "./ChatBubble";
 import { LocalChatStore } from "../context/DataStoreContext";
+
 export default function ChatBox() {
   const today = new Date();
   const [input, setInput] = useState("");
-
-
   const { data, setData } = useContext(LocalChatStore);
-  const [currentChat, setCurrentChat] = useState([]);
-  let id = useParams();
+  const [currentChat, setCurrentChat] = useState({ chats: [] });
+  const id = useParams();
 
   function getSessionChatData() {
-    let filterdData = Array.isArray(data)
+    const filteredData = Array.isArray(data)
       ? data.find((c) => c.chatId === id.chatId)
       : null;
 
-    if (filterdData) setCurrentChat(filterdData);
-
+    if (filteredData) setCurrentChat(filteredData);
   }
 
   function updateChatHistory() {
-    setData(prev => ([
-      ...prev,
-        currentChat
-    ]));
+    if (!currentChat?.chatId || !currentChat?.chats?.length) return;
+
+    setData(prev => {
+      const existingIndex = prev.findIndex(chat => chat.chatId === currentChat.chatId);
+
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = currentChat;
+        return updated;
+      } else {
+        return [...prev, currentChat];
+      }
+    });
   }
 
   useEffect(() => {
     getSessionChatData();
+  }, [id.chatId]);
 
+  useEffect(() => {
     return () => {
       updateChatHistory();
     };
-  }, [id.chatId]);
-  
+  }, []);
 
   function storeMessage(msg, isUser) {
     setCurrentChat(prevChat => ({
       ...prevChat,
       chats: [
-        ...(prevChat.chats || []),  // Fallback to empty array if chats is undefined
+        ...(prevChat.chats || []),
         {
           isUser: isUser,
           time: today.getTime(),
@@ -50,20 +58,136 @@ export default function ChatBox() {
     }));
   }
 
-  function handleClick() {
+  async function handleClick() {
     if (!input.trim()) return;
 
-    storeMessage(input, true);
-    setInput(''); // Clear the input after sending
+    const userMessage = input;
+    storeMessage(userMessage, true);
+    setInput('');
 
-  // ... rest of your code
+    const typingId = Date.now() + '_typing';
+    setCurrentChat(prevChat => ({
+      ...prevChat,
+      chats: [
+        ...(prevChat.chats || []),
+        {
+          isUser: false,
+          time: typingId,
+          message: '',
+          isTyping: true
+        }
+      ]
+    }));
+
+    try {
+      const response = await fetch('https://millions-screeching-vultur.mastra.cloud/api/agents/weatherAgent/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: userMessage
+            }
+          ],
+          runId: "weatherAgent",
+          maxRetries: 22,
+          maxSteps: 5,
+          temperature: 0.5,
+          topP: 1,
+          runtimeContext: {},
+          threadId: id.chatId,
+          resourceId: "weatherAgent"
+        }),
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiMessage = '';
+
+      setCurrentChat(prevChat => ({
+        ...prevChat,
+        chats: prevChat.chats.filter(chat => chat.time !== typingId)
+      }));
+
+      const aiMessageId = Date.now();
+      setCurrentChat(prevChat => ({
+        ...prevChat,
+        chats: [
+          ...(prevChat.chats || []),
+          {
+            isUser: false,
+            time: aiMessageId,
+            message: '',
+            isStreaming: true
+          }
+        ]
+      }));
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.trim() && line.includes(':')) {
+            const colonIndex = line.indexOf(':');
+            const eventType = line.substring(0, colonIndex);
+            const eventData = line.substring(colonIndex + 1);
+
+            if (eventType === '0') {
+              aiMessage += eventData;
+
+              setCurrentChat(prevChat => ({
+                ...prevChat,
+                chats: prevChat.chats.map(chat =>
+                  chat.time === aiMessageId
+                    ? { ...chat, message: aiMessage }
+                    : chat
+                )
+              }));
+            }
+          }
+        }
+      }
+
+      setCurrentChat(prevChat => ({
+        ...prevChat,
+        chats: prevChat.chats.map(chat =>
+          chat.time === aiMessageId
+            ? { ...chat, isStreaming: false }
+            : chat
+        )
+      }));
+
+    } catch (error) {
+      console.error('Error:', error);
+
+      setCurrentChat(prevChat => ({
+        ...prevChat,
+        chats: [
+          ...prevChat.chats.filter(chat => chat.time !== typingId),
+          {
+            isUser: false,
+            time: Date.now(),
+            message: 'Sorry, I encountered an error. Please try again.',
+            isError: true
+          }
+        ]
+      }));
+    }
   }
 
   return (
     <div className="flex justify-center h-screen w-full bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="flex flex-col h-screen w-full max-w-4xl bg-white">
 
-        {/* Chat Header */}
         <div className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -76,7 +200,6 @@ export default function ChatBox() {
           </div>
         </div>
 
-        {/* Messages Container */}
         <div
           className="flex-1 overflow-y-auto p-6 space-y-4"
           style={{
@@ -97,13 +220,12 @@ export default function ChatBox() {
               </p>
             </div>
           ) : (
-            currentChat?.chats?.map((item, i) => (
-              <ChatBubble key={i} message={item.message} isUser={item.isUser} />
+            currentChat?.chats?.map((item) => (
+              <ChatBubble key={item.time} message={item.message} isUser={item.isUser} />
             ))
           )}
         </div>
 
-        {/* Input Section */}
         <div className="bg-white border-t border-slate-200 p-4 shadow-lg">
           <div className="flex items-end gap-3 max-w-4xl mx-auto">
             <div className="flex-1 relative">
@@ -149,7 +271,6 @@ export default function ChatBox() {
             </button>
           </div>
 
-          {/* Quick Actions (Optional) */}
           <div className="flex gap-2 mt-3 flex-wrap">
             <button
               onClick={() => setInput("What's the weather like today?")}
@@ -171,6 +292,7 @@ export default function ChatBox() {
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

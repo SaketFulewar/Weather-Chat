@@ -1,26 +1,27 @@
-import { sideBarButton } from "./Buttons";
 import WeatherChatLogo from "./WeatherChatLogo";
-import { useEffect, useContext, useState } from "react";
+import { useContext } from "react";
 import { LocalChatStore } from "../context/DataStoreContext";
 import { createNewChat } from "../utils/createNewChat";
 import { Link, useNavigate } from "react-router";
+
 function SideBar() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { data, setData } = useContext(LocalChatStore);
+
   const handleNewChat = () => {
-    const newChat = createNewChat("Nagpur Temprature");
+    const date = new Date()
+    const newChat = createNewChat(date.getTime());
     setData(prev => [...prev, newChat]);
-    navigate(`/chat/${newChat.chatId}`, { replace: true })
+    navigate(`/chat/${newChat.chatId}`, { replace: true });
   };
 
   return (
     <div className="w-80 bg-slate-900 h-screen flex flex-col border-r border-slate-700 shadow-xl">
-      {/* Header Section */}
+
       <div className="p-6 border-b border-slate-700">
         <WeatherChatLogo />
       </div>
 
-      {/* New Chat Button */}
       <div className="p-4">
         <button
           onClick={handleNewChat}
@@ -33,7 +34,6 @@ function SideBar() {
         </button>
       </div>
 
-      {/* Chat History Section */}
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="px-4 pb-2">
           <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">
@@ -61,12 +61,12 @@ function SideBar() {
         </div>
       </div>
 
-      {/* Footer Section (Optional) */}
       <div className="p-4 border-t border-slate-700">
         <div className="text-xs text-slate-500 text-center">
           Weather Chat Assistant
         </div>
       </div>
+
     </div>
   );
 }
