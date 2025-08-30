@@ -8,6 +8,7 @@ function App() {
         <Routes>
           {/* <Route path="/" element={}></Route> */}
           <Route path="/chat/:chatId" element={<ChatPage />}></Route>
+          {/* <Route path="/chat" element={<ChatPage />}></Route> */}
         </Routes>
       </BrowserRouter>
     </LocalChatStoreProvider>
