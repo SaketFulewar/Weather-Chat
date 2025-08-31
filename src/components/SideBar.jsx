@@ -1,19 +1,24 @@
 import WeatherChatLogo from "./WeatherChatLogo";
-import { useContext } from "react";
-import { LocalChatStore } from "../context/DataStoreContext";
-import { createNewChat } from "../utils/createNewChat";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
+import { useCreateNewChat } from "../hooks/chat.js";
+import {useContext} from "react";
+import {LocalChatStore} from "../context/DataStoreContext.jsx";
 
 function SideBar() {
-  const navigate = useNavigate();
-  const { data, setData } = useContext(LocalChatStore);
-
-  const handleNewChat = () => {
-    const date = new Date()
-    const newChat = createNewChat(date.getTime());
-    setData(prev => [...prev, newChat]);
-    navigate(`/chat/${newChat.chatId}`, { replace: true });
-  };
+    const newChat = useCreateNewChat()
+    const {data, _} = useContext(LocalChatStore)
+    function handleClick(){
+        newChat()
+    }
+  // const navigate = useNavigate();
+  // const { data, setData } = useContext(LocalChatStore);
+  //
+  // const createNewChatSession = () => {
+  //   const date = new Date()
+  //   const newChat = createNewChat(date.getTime());
+  //   setData(prev => [...prev, newChat]);
+  //   navigate(`/chat/${newChat.chatId}`, { replace: true });
+  // };
 
   return (
     <div className="w-80 bg-slate-900 h-screen flex flex-col border-r border-slate-700 shadow-xl">
@@ -24,7 +29,7 @@ function SideBar() {
 
       <div className="p-4">
         <button
-          onClick={handleNewChat}
+          onClick={handleClick}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

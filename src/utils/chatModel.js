@@ -1,6 +1,6 @@
 import { v4 } from "uuid";
 const date = new Date()
-export function createNewChat(title){
+export function createNewChatSession(title){
     const newChat = {
       chatId: v4(),
       time: date.getTime(),
@@ -10,4 +10,3 @@ export function createNewChat(title){
 
     return newChat
 }
-
