@@ -18,6 +18,10 @@ export default function ChatBox() {
     if (filteredData) setCurrentChat(filteredData);
   }
 
+  useEffect(() => {
+    getSessionChatData();
+  }, [id.chatId]);
+
   function updateChatHistory() {
     if (!currentChat?.chatId || !currentChat?.chats?.length) return;
 
@@ -34,9 +38,6 @@ export default function ChatBox() {
     });
   }
 
-  useEffect(() => {
-    getSessionChatData();
-  }, [id.chatId]);
 
   useEffect(() => {
     return () => {
