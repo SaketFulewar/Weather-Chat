@@ -1,4 +1,4 @@
-# Weather Chat Assistant
+# Weather Chat Assistant - [https://weather-chat.vercel.app]
 
 A modern, real-time weather chat application built with React that lets you have natural conversations about weather conditions, forecasts, and climate information.
 
